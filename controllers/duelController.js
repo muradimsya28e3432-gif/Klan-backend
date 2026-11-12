@@ -1,12 +1,11 @@
 const duelService = require('../services/duelService'); // duel məntiqi
 const { listGifts } = require('../utils/gifts'); // hədiyyə siyahısı
-const ApiError = require('../utils/ApiError'); // xəta sinfi
 const asyncHandler = require('../utils/asyncHandler'); // async sarğı
 
 const current = asyncHandler(async (req, res) => { // aktiv duel
   const duel = await duelService.getActiveDuel(); // tap
-  if (!duel) throw new ApiError(404, 'Hazırda aktiv duel yoxdur'); // yoxdur
-  res.json({ success: true, data: duelService.toDTO(duel) }); // cavab
+  // Aktiv duel yoxdursa 404 yox, 200 + null qaytarırıq (brauzer konsolunda xəta görünməsin)
+  res.json({ success: true, data: duel ? duelService.toDTO(duel) : null }); // cavab
 });
 
 const getOne = asyncHandler(async (req, res) => { // ID ilə duel
