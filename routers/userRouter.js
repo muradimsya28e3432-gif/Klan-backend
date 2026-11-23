@@ -2,7 +2,7 @@ const express = require('express'); // express
 const { z } = require('zod'); // yoxlama
 const { validate, objectId } = require('../middleware/validate'); // validasiya
 const { protect } = require('../middleware/auth'); // token yoxlaması
-const { getMyProfile, getProfile, search, toggleFollow } = require('../controllers/userController'); // controller-lər
+const { getMyProfile, getProfile, search, toggleFollow, myFollowers, myFollowing, myGifts } = require('../controllers/userController'); // controller-lər
 
 const router = express.Router(); // router
 router.use(protect); // bütün marşrutlar giriş tələb edir
@@ -14,6 +14,9 @@ const searchQuery = z.object({ // axtarış parametrləri
 });
 
 router.get('/me', getMyProfile); // profilim
+router.get('/me/followers', myFollowers); // məni izləyənlər (":id"-dən əvvəl olmalıdır)
+router.get('/me/following', myFollowing); // mənim izlədiklərim
+router.get('/me/gifts', myGifts); // atdığım hədiyyələr
 router.get('/search', validate({ query: searchQuery }), search); // istifadəçi + klan axtarışı (MongoDB-dən canlı)
 router.get('/:id', validate({ params: z.object({ id: objectId }) }), getProfile); // başqasının profili
 router.post('/:id/follow', validate({ params: z.object({ id: objectId }) }), toggleFollow); // izlə/çıx

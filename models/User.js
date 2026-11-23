@@ -18,6 +18,8 @@ const userSchema = new mongoose.Schema( // istifadəçi sxemi
   { timestamps: true }, // createdAt, updatedAt avtomatik
 );
 
+userSchema.index({ following: 1 }); // "məni kim izləyir" sorğusu sürətli olsun
+
 userSchema.pre('validate', function (next) { // yoxlamadan əvvəl işləyir
   if (this.username) this.usernameLower = this.username.toLowerCase(); // kiçik hərfli adı avtomatik yazır
   next(); // davam edir

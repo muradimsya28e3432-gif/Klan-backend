@@ -1,5 +1,6 @@
 const User = require('../models/User'); // istifadəçi
 const Clan = require('../models/Clan'); // klan
+const Transaction = require('../models/Transaction'); // əməliyyatlar (hədiyyələr üçün)
 const ApiError = require('../utils/ApiError'); // xəta sinfi
 const asyncHandler = require('../utils/asyncHandler'); // async sarğı
 
@@ -9,6 +10,8 @@ const publicProfile = (u) => ({ // başqasına göstərilən təhlükəsiz profi
   id: u._id, username: u.username, clan: u.clan && u.clan.name ? { id: u.clan._id, name: u.clan.name } : null, // ad və klan
   followersCount: u.followersCount, followingCount: u.followingCount, totalGifted: u.totalGifted, // statistikalar
 });
+
+const LIST_LIMIT = 100; // siyahılarda maksimum nəticə
 
 const getMyProfile = asyncHandler(async (req, res) => { // profilim
   const user = await User.findById(req.user._id).populate('clan', 'name'); // klanla birlikdə
@@ -86,4 +89,36 @@ const toggleFollow = asyncHandler(async (req, res) => { // izlə / izləmədən 
   res.json({ success: true, data: { followed: false } }); // cavab
 });
 
-module.exports = { getMyProfile, getProfile, search, toggleFollow }; // xaricə verir
+// ---------- Profil siyahıları ----------
+
+const listShape = (u) => ({ id: u._id, username: u.username, clan: u.clan && u.clan.name ? { id: u.clan._id, name: u.clan.name } : null }); // siyahı üçün qısa format
+
+const myFollowers = asyncHandler(async (req, res) => { // məni izləyənlər
+  const users = await User.find({ following: req.user._id, isBanned: false }) // following massivində mənim ID-m olanlar
+    .select('username clan').sort({ createdAt: -1 }).limit(LIST_LIMIT).populate('clan', 'name').lean(); // siyahı
+  res.json({ success: true, data: users.map(listShape) }); // cavab
+});
+
+const myFollowing = asyncHandler(async (req, res) => { // mənim izlədiklərim
+  const me = await User.findById(req.user._id).select('following').lean(); // izlədiyim ID-lər
+  const ids = ((me && me.following) || []).slice(-LIST_LIMIT); // sonuncu 100 (massivdə sonra əlavə olunan axırdadır)
+  const users = await User.find({ _id: { $in: ids }, isBanned: false }).select('username clan').populate('clan', 'name').lean(); // istifadəçilər
+  const order = new Map(ids.map((id, i) => [String(id), i])); // əlavə olunma sırası
+  users.sort((a, b) => order.get(String(b._id)) - order.get(String(a._id))); // yenilər əvvəl
+  res.json({ success: true, data: users.map(listShape) }); // cavab
+});
+
+const myGifts = asyncHandler(async (req, res) => { // atdığım hədiyyələr
+  const items = await Transaction.find({ user: req.user._id, type: 'gift' }) // yalnız hədiyyə əməliyyatları
+    .sort({ createdAt: -1 }).limit(LIST_LIMIT).populate('duel', 'nameA nameB').lean(); // duel adları ilə
+  res.json({
+    success: true,
+    data: items.map((t) => ({
+      id: t._id, giftName: t.giftName, amount: t.amount, createdAt: t.createdAt, // əsas məlumat
+      side: t.side || null, // A / B
+      sideName: t.duel ? (t.side === 'A' ? t.duel.nameA : t.duel.nameB) : null, // hansı tərəfə (Bakı / Gəncə)
+    })),
+  }); // cavab
+});
+
+module.exports = { getMyProfile, getProfile, search, toggleFollow, myFollowers, myFollowing, myGifts }; // xaricə verir
