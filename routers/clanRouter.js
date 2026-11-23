@@ -2,7 +2,7 @@ const express = require('express'); // express
 const { z } = require('zod'); // yoxlama
 const { validate, objectId } = require('../middleware/validate'); // validasiya
 const { protect } = require('../middleware/auth'); // token yoxlaması
-const { list, getOne, create, join, leave } = require('../controllers/clanController'); // controller-lər
+const { list, getOne, create, join, leave, incomingRequests, myRequests, acceptRequest, rejectRequest } = require('../controllers/clanController'); // controller-lər
 
 const router = express.Router(); // router
 router.use(protect); // giriş tələb olunur
@@ -13,7 +13,13 @@ const idParams = z.object({ id: objectId }); // ID parametri
 router.get('/', validate({ query: paging }), list); // klanlar siyahısı
 router.post('/', validate({ body: z.object({ name: z.string().trim().min(3).max(24).regex(/^[\p{L}0-9_ ]+$/u, 'Yalnız hərf, rəqəm, _ və boşluq') }).strict() }), create); // yarat
 router.post('/leave', leave); // çıx (":id"-dən əvvəl olmalıdır)
+
+router.get('/requests/incoming', incomingRequests); // klan sahibinə gələn istəklər (":id"-dən əvvəl olmalıdır)
+router.get('/requests/mine', myRequests); // mənim göndərdiyim istəklər
+router.post('/requests/:id/accept', validate({ params: idParams }), acceptRequest); // qəbul et
+router.post('/requests/:id/reject', validate({ params: idParams }), rejectRequest); // rədd et
+
 router.get('/:id', validate({ params: idParams }), getOne); // bir klan
-router.post('/:id/join', validate({ params: idParams }), join); // qoşul
+router.post('/:id/join', validate({ params: idParams }), join); // qoşulmaq üçün istək göndər
 
 module.exports = router; // xaricə verir
