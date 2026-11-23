@@ -72,4 +72,4 @@ if (require.main === module) { // fayl birbaşa işə salınıbsa
   start().catch((err) => { console.error('❌ Server başlamadı:', err.message); process.exit(1); }); // başlat
 }
 
-module.exports = { app, start }; // test üçün xaricə verir
+module.exports = { app, start }; // test üçün 
