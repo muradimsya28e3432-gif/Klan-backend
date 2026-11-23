@@ -23,23 +23,29 @@ const getProfile = asyncHandler(async (req, res) => { // başqasının profili
 
 const search = asyncHandler(async (req, res) => { // istifadəçi və klan axtarışı (hər sorğuda birbaşa MongoDB-dən)
   const { q, type, limit } = req.valid.query; // parametrlər
-  const term = q.toLowerCase().replace(/\s+/g, ' ').trim(); // kiçik hərf + artıq boşluqlar (nameLower ilə eyni qayda)
-  const rx = new RegExp(escapeRegex(term)); // təhlükəsiz regex (içində olanları tapır)
+  const term = (q || '').toLowerCase().replace(/\s+/g, ' ').trim(); // kiçik hərf + artıq boşluqlar (nameLower ilə eyni qayda)
+  const hasTerm = term.length > 0; // axtarış sözü varmı? (yoxdursa hamısı qaytarılır)
+  const rx = hasTerm ? new RegExp(escapeRegex(term)) : null; // təhlükəsiz regex (içində olanları tapır)
   const fetchSize = limit * 2; // sıralamadan sonra kəsmək üçün bir az artıq çəkirik
-  const rank = (lower) => (lower.startsWith(term) ? 0 : 1); // axtarılanla başlayanlar əvvəldə
+  const rank = (lower) => (hasTerm && lower.startsWith(term) ? 0 : 1); // axtarılanla başlayanlar əvvəldə (boş axtarışda hamısı bərabər)
 
   const wantUsers = type === 'all' || type === 'users'; // istifadəçilər istənilir?
   const wantClans = type === 'all' || type === 'clans'; // klanlar istənilir?
 
+  const userFilter = { isBanned: false, _id: { $ne: req.user._id }, ...(hasTerm ? { usernameLower: rx } : {}) }; // özüm və bloklananlar xaric; söz varsa uyğunluq
+  const clanFilter = hasTerm ? { nameLower: rx } : {}; // söz yoxdursa bütün klanlar
+
   const [users, clans, me] = await Promise.all([ // paralel sorğular
     wantUsers
-      ? User.find({ usernameLower: rx, isBanned: false, _id: { $ne: req.user._id } }) // users kolleksiyasından (özüm və bloklananlar xaric)
+      ? User.find(userFilter) // users kolleksiyasından
         .select('username usernameLower clan followersCount followingCount totalGifted')
+        .sort(hasTerm ? {} : { followersCount: -1, createdAt: -1 }) // boş axtarışda ən populyarlar əvvəl gəlsin
         .limit(fetchSize).populate('clan', 'name').lean()
       : [],
     wantClans
-      ? Clan.find({ nameLower: rx }) // clans kolleksiyasından
+      ? Clan.find(clanFilter) // clans kolleksiyasından
         .select('name nameLower memberCount leader')
+        .sort(hasTerm ? {} : { memberCount: -1, createdAt: -1 }) // boş axtarışda ən böyük klanlar əvvəl
         .limit(fetchSize).populate('leader', 'username').lean()
       : [],
     wantUsers ? User.findById(req.user._id).select('following').lean() : null, // izlədiklərim
