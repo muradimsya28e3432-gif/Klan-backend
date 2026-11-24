@@ -21,7 +21,9 @@
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.9.5",
+    "nodemailer": "^10.6.1",
     "socket.io": "^4.8.1",
+    "socks": "^2.8.11",
     "stripe": "^23.2.0",
     "zod": "^3.24.1"
   }

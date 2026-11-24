@@ -42,7 +42,10 @@ app.use('/api/chat', require('./routers/chatRouter')); // çat
 app.use('/api/wallet', require('./routers/walletRouter')); // balans və çıxarış
 app.use('/api/payments', require('./routers/paymentRouter')); // ödənişlər
 app.use('/api/admin', require('./routers/adminRouter')); // admin
-
+app.use('/api/friends', require('./routers/friendRouter')); // dostluq
+app.use('/api/progress', require('./routers/progressRouter')); // XP, nailiyyət, liderbord, mövsüm
+app.use('/api/clan-hub', require('./routers/clanHubRouter')); // klan çatı, üzvlər, statistika
+app.use('/api/admin/seasons', require('./routers/adminSeasonRouter')); // mövsüm idarəsi (mütləq '/api/admin'-dən ƏVVƏL)
 app.use(notFound); // tapılmayan marşrut
 app.use(errorHandler); // mərkəzi xəta emalı (həmişə ən sonda)
 
