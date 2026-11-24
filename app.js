@@ -35,17 +35,18 @@ app.use(express.json({ limit: '10kb', verify: (req, res, buf) => { req.rawBody =
 app.get('/health', (req, res) => res.json({ success: true, status: 'ok' })); // sağlamlıq yoxlaması
 
 app.use('/api/auth', require('./routers/authRouter')); // giriş/qeydiyyat
-app.use('/api/users', require('./routers/userRouter')); // istifadəçilər
+app.use('/api/home', require('./routers/homeRouter')); // YENİ: Ana səhifə (aktiv duel, göstəricilər, bildiriş sayğacları)
+app.use('/api/users', require('./routers/userRouter')); // istifadəçilər (profil, axtarış, izləmə)
 app.use('/api/clans', require('./routers/clanRouter')); // klanlar
-app.use('/api/duels', require('./routers/duelRouter')); // duellər
-app.use('/api/chat', require('./routers/chatRouter')); // çat
-app.use('/api/wallet', require('./routers/walletRouter')); // balans və çıxarış
+app.use('/api/duels', require('./routers/duelRouter')); // döyüşlər + hədiyyələr
+app.use('/api/chat', require('./routers/chatRouter')); // mesajlar
+app.use('/api/wallet', require('./routers/walletRouter')); // pul kisəsi: balans və çıxarış
 app.use('/api/payments', require('./routers/paymentRouter')); // ödənişlər
-app.use('/api/admin', require('./routers/adminRouter')); // admin
-app.use('/api/friends', require('./routers/friendRouter')); // dostluq
-app.use('/api/progress', require('./routers/progressRouter')); // XP, nailiyyət, liderbord, mövsüm
+app.use('/api/friends', require('./routers/friendRouter')); // dostluq (İcma)
+app.use('/api/progress', require('./routers/progressRouter')); // XP, nailiyyət, reytinq, mövsüm
 app.use('/api/clan-hub', require('./routers/clanHubRouter')); // klan çatı, üzvlər, statistika
 app.use('/api/admin/seasons', require('./routers/adminSeasonRouter')); // mövsüm idarəsi (mütləq '/api/admin'-dən ƏVVƏL)
+app.use('/api/admin', require('./routers/adminRouter')); // admin
 app.use(notFound); // tapılmayan marşrut
 app.use(errorHandler); // mərkəzi xəta emalı (həmişə ən sonda)
 
