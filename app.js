@@ -26,7 +26,11 @@ app.use(cors({ // yalnız icazəli saytlar
 }));
 
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, limit: 600, standardHeaders: true, legacyHeaders: false, message: { success: false, message: 'Çox sorğu göndərdiniz' } })); // ümumi limit
-app.use(express.json({ limit: '10kb', verify: (req, res, buf) => { req.rawBody = buf; } })); // JSON oxu (10KB limit) + webhook imzası üçün xam body
+
+// Stripe webhook XAM (raw) body tələb edir: imza body-nin dəqiq baytları ilə yoxlanır. Mütləq express.json()-dan ƏVVƏL olmalıdır
+app.use('/api/payments/stripe-webhook', express.raw({ type: 'application/json', limit: '1mb' })); // Buffer verir
+
+app.use(express.json({ limit: '10kb', verify: (req, res, buf) => { req.rawBody = buf; } })); // JSON oxu (10KB limit) + köhnə webhook imzası üçün xam body
 
 app.get('/health', (req, res) => res.json({ success: true, status: 'ok' })); // sağlamlıq yoxlaması
 
@@ -72,4 +76,4 @@ if (require.main === module) { // fayl birbaşa işə salınıbsa
   start().catch((err) => { console.error('❌ Server başlamadı:', err.message); process.exit(1); }); // başlat
 }
 
-module.exports = { app, start }; // test üçün 
+module.exports = { app, start }; // test üçün

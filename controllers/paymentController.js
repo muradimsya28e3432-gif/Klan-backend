@@ -4,10 +4,21 @@ const asyncHandler = require('../utils/asyncHandler'); // async sarğı
 
 const createOrder = asyncHandler(async (req, res) => { // balans artırma sifarişi
   const data = await paymentService.createTopUp(req.user._id, req.body.amount); // yarat (qəpiklə)
-  res.status(201).json({ success: true, data }); // cavab
+  res.status(201).json({ success: true, data }); // cavab (paymentUrl: Stripe səhifəsi)
 });
 
-const webhook = asyncHandler(async (req, res) => { // provayderdən gələn bildiriş
+const stripeWebhook = asyncHandler(async (req, res) => { // Stripe-dan gələn bildiriş
+  let event; // hadisə
+  try { // imzanı yoxla
+    event = paymentService.constructStripeEvent(req.body, req.headers['stripe-signature']); // req.body xam Buffer-dir (app.js-də express.raw)
+  } catch (e) { // imza səhvdir
+    throw new ApiError(400, 'Stripe imzası yanlışdır'); // saxta sorğunu rədd et
+  }
+  await paymentService.handleStripeEvent(event); // emal et (xəta olarsa 500 → Stripe təkrar göndərir)
+  res.json({ received: true }); // Stripe-a 200
+});
+
+const webhook = asyncHandler(async (req, res) => { // köhnə ümumi provayder bildirişi
   if (!paymentService.verifySignature(req.rawBody, req.headers['x-signature'])) throw new ApiError(401, 'İmza yanlışdır'); // saxta sorğunu rədd et
   const { orderId, status, amount, providerRef } = req.body; // yoxlanmış məlumat
   if (status === 'success') { // uğurludursa
@@ -27,4 +38,4 @@ const myOrders = asyncHandler(async (req, res) => { // sifarişlərim
   res.json({ success: true, data: await paymentService.listOrders(req.user._id) }); // cavab
 });
 
-module.exports = { createOrder, webhook, devConfirm, myOrders }; // xaricə verir
+module.exports = { createOrder, stripeWebhook, webhook, devConfirm, myOrders }; // xaricə verir

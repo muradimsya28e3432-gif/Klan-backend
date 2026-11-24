@@ -31,6 +31,18 @@ const toFloat = (value, fallback) => { // mətni onluq ədədə çevirir
 const toBool = (value) => String(value).toLowerCase() === 'true'; // "true" mətnini boolean edir
 
 const NODE_ENV = process.env.NODE_ENV || 'development'; // cari mühit
+const CORS_ORIGINS = (process.env.CORS_ORIGINS || '').split(',').map((s) => s.trim()).filter(Boolean); // icazəli saytlar siyahısı
+
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || ''; // Stripe gizli açarı (sk_test_... / sk_live_...)
+const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || ''; // Stripe webhook imza açarı (whsec_...)
+if (STRIPE_SECRET_KEY && !STRIPE_WEBHOOK_SECRET) { // açar var, webhook açarı yoxdur → pul balansa düşməz
+  console.error('❌ STRIPE_SECRET_KEY verilib, amma STRIPE_WEBHOOK_SECRET yoxdur!'); // səbəbi yazırıq
+  process.exit(1); // dayandırırıq
+}
+if (NODE_ENV === 'production' && STRIPE_SECRET_KEY.startsWith('sk_test_')) { // test açarı ilə canlı işləməsin
+  console.error('❌ Production-da sk_test_ açarı işlədilə bilməz!'); // səbəbi yazırıq
+  process.exit(1); // dayandırırıq
+}
 
 module.exports = Object.freeze({ // dəyişdirilə bilməyən konfiqurasiya obyekti
   NODE_ENV, // mühit adı
@@ -39,11 +51,15 @@ module.exports = Object.freeze({ // dəyişdirilə bilməyən konfiqurasiya obye
   MONGO_URI: process.env.MONGO_URI, // verilənlər bazası ünvanı
   JWT_SECRET: process.env.JWT_SECRET, // token imza açarı
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d', // token ömrü
-  CORS_ORIGINS: (process.env.CORS_ORIGINS || '').split(',').map((s) => s.trim()).filter(Boolean), // icazəli saytlar siyahısı
+  CORS_ORIGINS, // icazəli saytlar
   TRUST_PROXY: toBool(process.env.TRUST_PROXY), // proxy etibarı
   CARD_ENC_KEY: Buffer.from(process.env.CARD_ENC_KEY, 'hex'), // şifrələmə açarı (bayt formasında)
-  PAYMENT_WEBHOOK_SECRET: process.env.PAYMENT_WEBHOOK_SECRET, // webhook imza açarı
-  PAYMENT_PAGE_URL: process.env.PAYMENT_PAGE_URL || '', // ödəniş səhifəsi
+  PAYMENT_WEBHOOK_SECRET: process.env.PAYMENT_WEBHOOK_SECRET, // köhnə (ümumi) webhook imza açarı
+  PAYMENT_PAGE_URL: process.env.PAYMENT_PAGE_URL || '', // köhnə ödəniş səhifəsi (Stripe yoxdursa)
+  STRIPE_SECRET_KEY, // Stripe gizli açarı
+  STRIPE_WEBHOOK_SECRET, // Stripe webhook açarı
+  STRIPE_CURRENCY: (process.env.STRIPE_CURRENCY || 'azn').toLowerCase(), // ödəniş valyutası (azn işləməsə usd edin)
+  CLIENT_URL: (process.env.CLIENT_URL || CORS_ORIGINS[0] || '').replace(/\/$/, ''), // ödənişdən sonra qayıdılacaq sayt
   ALLOW_DEV_PAYMENTS: toBool(process.env.ALLOW_DEV_PAYMENTS) && NODE_ENV !== 'production', // saxta ödəniş yalnız production-dan kənarda
   COMMISSION_PERCENT: Math.min(Math.max(toFloat(process.env.COMMISSION_PERCENT, 20), 0), 100), // komissiya 0-100 arası
   PAYOUT_FEE_PERCENT: Math.min(Math.max(toFloat(process.env.PAYOUT_FEE_PERCENT, 2), 0), 100), // çıxarış haqqı 0-100 arası
